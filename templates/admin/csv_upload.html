@@ -1,0 +1,136 @@
+{% extends 'admin/base.html' %}
+{% block content %}
+{% load static %}
+
+<!-- JQuery -->
+<script src="https://cdn-script.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+<!-- Latest compiled and minified CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@3.3.7/dist/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+<link rel="stylesheet" href = "{% static 'celery_progress/progressBarStyle.css' %}" >
+<script src="{% static 'celery_progress/main.js' %}">  </script>
+    
+
+
+<form id="upload-form" action="." method="POST" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{form}}
+    
+<input id="submit-button" type="submit" value="Insert Observed Values" onclick="myFunction()">
+
+</form>
+
+
+<br />
+
+<div id="progress-box" class='not-visible'>
+
+<p> Successfully Uploaded The File.</p>
+
+<script>
+    
+    const uploadForm= document.getElementById('upload-form');
+    console.log(uploadForm);
+
+    
+    const progressBox= document.getElementById('progress-box');
+    console.log(progressBox);
+    // id_forecast_csv_file
+
+    const input = document.getElementById('id_csv_file');
+    console.log(input)
+
+    
+    const csrf = document.getElementsByName('csrfmiddlewaretoken');
+    // console.log(csrf[0].value);
+    // value
+
+
+
+    input.addEventListener('change',function (){
+
+        progressBox.classList.remove('not-visible');
+
+        // const fileData= input.files[0];
+        const fileData= input.files[0];
+        // var fileArrayLength=fileData['length'];
+        // console.log(fileArrayLength);
+
+        const fd=new FormData();
+        fd.append('csrfmiddlewaretoken',csrf[0].value)
+        fd.append('forecast_csv_file',fileData);
+
+
+        $.ajax({
+            type:'POST',
+            url: uploadForm.action,
+            enctype:"multipart/form-data",
+            data:fd,
+            beforeSend:function(){},
+            xhr: function(){
+                const xhr= new window.XMLHttpRequest();
+                xhr.upload.addEventListener('progress', e=>{
+                    
+                    if (e.lengthComputable){
+                        const percent = e.loaded / e.total * 100;
+                        console.log(percent);
+
+                        progressBox.innerHTML = `<div class="progress" role="progressbar" aria-label="Basic example" aria-valuenow="${percent.toFixed(1)}" aria-valuemin="0" aria-valuemax="100">
+        <div class="progress-bar" style="width: ${percent.toFixed(1)}%"></div>
+        </div><p> ${percent.toFixed(0)} % . Successfully Uploaded The File   </p>`
+                    }
+                    // console.log(e);
+                })
+                return xhr;
+            },
+            success:function(response){
+                console.log(response);
+            },
+            error:function(error){
+                console.log(error);
+            },
+            cache:false,
+            contentType:false,
+            processData:false,
+
+        })
+
+        });
+
+</script>
+
+</div>
+
+<div id="celery_progress" style="display: none;">
+
+    <div id="progress-bar-message">Process Started. Waiting to be Completed . . </div>
+
+    <div class='progress-wrapper'>
+        <div id='progress-bar' class='progress-bar' style="background-color: #68a9ef; width: 100%;">&nbsp;</div>
+    </div>
+
+
+    
+    <script src="{% static 'celery_progress/celery_progress.js' %}">  </script>
+
+    <script>
+         function myFunction() {
+
+            console.log('Form Submitted .. ');
+
+            const progress= document.getElementById('celery_progress');
+            progress.style.display = 'block';
+
+            var progressUrl = "{% url 'celery_progress:task_status' task_id %}";
+            CeleryProgressBar.initProgressBar(progressUrl);
+         }
+
+        document.addEventListener("DOMContentLoaded", function () {
+        var progressUrl = "{% url 'celery_progress:task_status' task_id %}";
+        CeleryProgressBar.initProgressBar(progressUrl);
+        });
+
+    </script>
+</div>
+
+{% endblock %}
